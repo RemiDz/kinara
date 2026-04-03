@@ -2,7 +2,8 @@
 import type { KinResult, OracleResult } from '@/lib/dreamspell-calc';
 import { SEAL_COLOUR_HEX, SEAL_COLOUR_TEXT } from '@/lib/dreamspell-data';
 import { getColourFamily, getEarthFamily, getCastle, getMasteryPhase } from '@/lib/categories';
-import { getFrequencyBand, type Connection } from '@/lib/relationships';
+import { getFrequencyBand, getFrequencyCompatibility, type Connection } from '@/lib/relationships';
+import { getCurveParams, gaussian, freqToX, BRAINWAVE_BANDS } from '@/lib/frequency-spectrum';
 import GlyphIcon from './GlyphIcon';
 import ToneSymbol from './ToneSymbol';
 
@@ -35,6 +36,37 @@ export default function ComparisonCard({ people, connections }: Props) {
     : uniqueBands.length === 2
     ? `Bridge session — weave between ${uniqueBands[0]} and ${uniqueBands[1]} instruments.`
     : `Journey session — move through ${uniqueBands.join(', ')} bands progressively.`;
+
+  // Spectrum SVG data
+  const SW = 460, SHt = 110, PT = 20, PB = 22, PX = 10;
+  const specW = SW - PX * 2, specH = SHt - PT - PB;
+  const fx = (f: number) => PX + freqToX(f, specW);
+  const fy = (a: number) => PT + specH - a * specH;
+
+  const curves = people.map(p => {
+    const cp = getCurveParams(p.kinResult.seal.colour);
+    const fb = getFrequencyBand(p.kinResult.seal.colour);
+    const pts: string[] = [];
+    for (let i = 0; i <= 200; i++) {
+      const f = 120 * (i / 200);
+      pts.push(`${fx(f)},${fy(gaussian(f, cp.peakFreq, cp.sigma))}`);
+    }
+    const line = 'M ' + pts.join(' L ');
+    return { p, peak: cp.peakFreq, band: fb, px: fx(cp.peakFreq), line, fill: `${line} L ${fx(120)},${fy(0)} L ${fx(0)},${fy(0)} Z` };
+  });
+
+  const occupiedBands = [...new Set(curves.map(c => c.band.band))];
+  const bandBridges: { x1: number; x2: number; color: string; label: string }[] = [];
+  if (occupiedBands.length > 1) {
+    for (let i = 0; i < occupiedBands.length; i++) {
+      for (let j = i + 1; j < occupiedBands.length; j++) {
+        const c1 = curves.find(c => c.band.band === occupiedBands[i])!;
+        const c2 = curves.find(c => c.band.band === occupiedBands[j])!;
+        const compat = getFrequencyCompatibility(c1.p.kinResult.seal.colour, c2.p.kinResult.seal.colour);
+        bandBridges.push({ x1: c1.px, x2: c2.px, color: compat.color, label: compat.label });
+      }
+    }
+  }
 
   return (
     <div className="my-8">
@@ -124,25 +156,65 @@ export default function ComparisonCard({ people, connections }: Props) {
         {/* Divider */}
         <div className="px-6"><div className="gold-divider my-4" /></div>
 
-        {/* Frequency Profile */}
-        <div className="px-6 pb-3">
-          <p className="text-[9px] uppercase tracking-[2px] text-ink-muted text-center mb-3">Frequency Profile</p>
-          <div className="flex justify-center gap-3 mb-3">
-            {people.map((p, i) => {
-              const freq = getFrequencyBand(p.kinResult.seal.colour);
+        {/* Frequency Spectrum */}
+        <div className="px-6 pb-4">
+          <p className="text-[9px] uppercase tracking-[2px] text-ink-muted text-center mb-3">Frequency Spectrum</p>
+
+          <svg width={SW} height={SHt} viewBox={`0 0 ${SW} ${SHt}`} className="w-full" preserveAspectRatio="xMidYMid meet">
+            {/* Band regions */}
+            {BRAINWAVE_BANDS.map(b => {
+              const x1 = fx(b.freqStart);
+              const x2 = fx(Math.min(b.freqEnd, 120));
               return (
-                <div key={i} className="text-center">
-                  <span
-                    className="inline-block px-3 py-1.5 rounded-full text-[10px] font-semibold"
-                    style={{ backgroundColor: `${SEAL_COLOUR_HEX[p.kinResult.seal.colour]}15`, color: SEAL_COLOUR_HEX[p.kinResult.seal.colour], border: `1px solid ${SEAL_COLOUR_HEX[p.kinResult.seal.colour]}30` }}
-                  >
-                    {freq.label} &middot; {freq.range}
-                  </span>
-                  <p className="text-[8px] text-ink-muted mt-1">{p.name}</p>
-                </div>
+                <g key={b.name}>
+                  <rect x={x1} y={PT} width={x2 - x1} height={specH} fill={b.bgColor} rx={2} />
+                  <text x={(x1 + x2) / 2} y={SHt - 3} textAnchor="middle" fontSize={8} fill="#9B8C7A">{b.symbol}</text>
+                </g>
               );
             })}
+            {/* Band boundaries */}
+            {[4, 8, 12, 30].map(f => (
+              <line key={f} x1={fx(f)} y1={PT} x2={fx(f)} y2={PT + specH} stroke="#D4C9B8" strokeWidth={0.5} strokeDasharray="2 2" />
+            ))}
+            {/* Hz labels */}
+            {[4, 8, 12, 30].map(f => (
+              <text key={`hz${f}`} x={fx(f)} y={SHt - 13} textAnchor="middle" fontSize={6} fill="#9B8C7A">{f}</text>
+            ))}
+            {/* Curve fills */}
+            {curves.map((c, i) => (
+              <path key={`cf${i}`} d={c.fill} fill={`${c.p.color}18`} />
+            ))}
+            {/* Curve lines */}
+            {curves.map((c, i) => (
+              <path key={`cl${i}`} d={c.line} fill="none" stroke={c.p.color} strokeWidth={2} />
+            ))}
+            {/* Bridge arcs */}
+            {bandBridges.map((b, i) => {
+              const mid = (b.x1 + b.x2) / 2;
+              return (
+                <g key={`br${i}`}>
+                  <path d={`M ${b.x1},${PT + 2} C ${b.x1},${2} ${b.x2},${2} ${b.x2},${PT + 2}`} fill="none" stroke={b.color} strokeWidth={1.5} strokeDasharray="4 3" opacity={0.6} />
+                  <text x={mid} y={7} textAnchor="middle" fontSize={7} fill={b.color} fontWeight="600">{b.label}</text>
+                </g>
+              );
+            })}
+            {/* Peak dots */}
+            {curves.map((c, i) => (
+              <circle key={`pd${i}`} cx={c.px} cy={PT} r={3.5} fill={c.p.color} stroke="#FDFBF7" strokeWidth={1} />
+            ))}
+          </svg>
+
+          {/* Legend */}
+          <div className="flex justify-center gap-3 flex-wrap mt-2 mb-2">
+            {curves.map((c, i) => (
+              <div key={i} className="flex items-center gap-1.5 text-[9px]">
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.p.color }} />
+                <span className="text-ink font-medium">{c.p.name}</span>
+                <span className="text-ink-muted">{c.band.label} &middot; {c.peak} Hz</span>
+              </div>
+            ))}
           </div>
+
           <p className="text-center text-ink-secondary text-[11px] font-semibold">
             {allSameBand ? 'Resonant Match' : uniqueBands.length === 2 ? 'Harmonic Bridge' : 'Dynamic Spectrum'}
           </p>

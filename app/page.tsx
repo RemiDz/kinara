@@ -16,6 +16,8 @@ import CastleSection from '@/components/CastleSection';
 import SoundHealing from '@/components/SoundHealing';
 import TzolkinMatrix from '@/components/TzolkinMatrix';
 import KinComparison from '@/components/KinComparison';
+import FrequencyProfile from '@/components/FrequencyProfile';
+import CalendarPicker from '@/components/CalendarPicker';
 import Footer from '@/components/Footer';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -75,8 +77,6 @@ export default function Home() {
     ...comparisonKins,
   ];
 
-  const sel = 'appearance-none bg-parchment-card border border-border text-ink px-4 py-3 rounded-full text-center text-sm focus:outline-none focus:border-gold focus:shadow-golden transition-all cursor-pointer min-w-0';
-
   return (
     <main className="min-h-screen">
       <TopBar todayLabel={todayDate} />
@@ -97,7 +97,7 @@ export default function Home() {
             </svg>
           </button>
 
-          <div className={`overflow-hidden transition-all duration-300 ${lookupOpen ? 'max-h-[200px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className={`transition-all duration-300 ${lookupOpen ? 'max-h-[200px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 overflow-hidden'}`}>
             <div className="pb-4">
               <input
                 type="text"
@@ -106,19 +106,13 @@ export default function Home() {
                 onChange={e => setClientName(e.target.value)}
                 className="w-full bg-parchment-card border border-border text-ink px-4 py-3 rounded-full text-sm focus:outline-none focus:border-gold transition-all mb-3"
               />
-              <div className="flex gap-3 justify-center mb-4 flex-wrap">
-                <select value={day} onChange={e => setDay(e.target.value)} className={sel} aria-label="Day">
-                  <option value="" disabled>Day</option>
-                  {Array.from({ length: 31 }, (_, i) => <option key={i+1} value={i+1}>{i+1}</option>)}
-                </select>
-                <select value={month} onChange={e => setMonth(e.target.value)} className={sel} aria-label="Month">
-                  <option value="" disabled>Month</option>
-                  {MONTHS.map((n, i) => <option key={i+1} value={i+1}>{n}</option>)}
-                </select>
-                <select value={year} onChange={e => setYear(e.target.value)} className={sel} aria-label="Year">
-                  <option value="" disabled>Year</option>
-                  {Array.from({ length: 111 }, (_, i) => { const y = 2030 - i; return <option key={y} value={y}>{y}</option>; })}
-                </select>
+              <div className="flex justify-center mb-4">
+                <CalendarPicker
+                  day={day}
+                  month={month}
+                  year={year}
+                  onChange={(d, m, y) => { setDay(d); setMonth(m); setYear(y); }}
+                />
               </div>
               <div className="text-center">
                 <button
@@ -150,6 +144,7 @@ export default function Home() {
             <PhasesOfMastery kinResult={clientKin} />
             <WavespellPosition kinResult={clientKin} />
             <CastleSection kinResult={clientKin} />
+            <FrequencyProfile kinResult={clientKin} />
             <SoundHealing kinResult={clientKin} />
           </>
         )}
