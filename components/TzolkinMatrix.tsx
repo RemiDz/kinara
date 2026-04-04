@@ -15,6 +15,7 @@ const COLOUR_BG: Record<string, string> = {
 interface HighlightedKin {
   kin: number;
   color: string;
+  name?: string;
 }
 
 interface Props {
@@ -31,10 +32,11 @@ export default function TzolkinMatrix({ userKin, highlightedKins = [] }: Props) 
   // Column 0 = Kins 1-20, Column 1 = Kins 21-40, …, Column 12 = Kins 241-260
   const getKin = (sealIdx: number, col: number) => col * 20 + sealIdx + 1;
 
-  const getHighlight = (kin: number): string | null => {
-    if (kin === userKin) return '#C4962C';
-    const match = highlightedKins.find(h => h.kin === kin);
-    return match ? match.color : null;
+  const getHighlight = (kin: number): { color: string; names: string[] } | null => {
+    const matches = highlightedKins.filter(h => h.kin === kin);
+    if (matches.length > 0) return { color: matches[0].color, names: matches.map(m => m.name).filter(Boolean) as string[] };
+    if (kin === userKin) return { color: '#C4962C', names: [] };
+    return null;
   };
 
   return (
@@ -69,14 +71,20 @@ export default function TzolkinMatrix({ userKin, highlightedKins = [] }: Props) 
                         onMouseLeave={() => setTooltip(null)}
                       >
                         <div
-                          className={`w-14 h-14 md:w-16 md:h-16 flex flex-col items-center justify-center gap-0.5 m-[1px] rounded-sm ${COLOUR_BG[seal.colour]} ${highlight ? 'font-bold scale-110 relative z-10' : 'text-ink-secondary'}`}
+                          className={`w-14 h-[68px] md:w-16 md:h-[72px] flex flex-col items-center justify-center overflow-hidden p-[2px] m-[1px] rounded-sm ${COLOUR_BG[seal.colour]} ${highlight ? 'font-bold relative z-10' : 'text-ink-secondary'}`}
                           style={highlight ? {
-                            boxShadow: `0 0 0 2px ${highlight}, 0 0 8px ${highlight}40`,
-                            color: highlight,
+                            outline: `2px solid ${highlight.color}`,
+                            outlineOffset: '-2px',
+                            color: highlight.color,
                           } : undefined}
                         >
-                          <span className="text-sm md:text-base font-mono leading-none">{kin}</span>
-                          <ToneSymbol tone={tone} size={22} colour={highlight ?? '#9B8C7A'} />
+                          <span className="text-[11px] md:text-xs font-mono leading-none">{kin}</span>
+                          <ToneSymbol tone={tone} size={20} colour={highlight?.color ?? '#9B8C7A'} />
+                          {highlight && highlight.names.length > 0 && (
+                            <span className="text-[8px] font-bold leading-none truncate w-full text-center" style={{ color: highlight.color }}>
+                              {highlight.names.length === 1 ? highlight.names[0] : highlight.names.join(' / ')}
+                            </span>
+                          )}
                         </div>
                       </td>
                     );

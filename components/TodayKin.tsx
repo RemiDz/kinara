@@ -1,8 +1,8 @@
 'use client';
 import type { KinResult } from '@/lib/dreamspell-calc';
 import type { OracleResult } from '@/lib/dreamspell-calc';
-import { SEAL_COLOUR_TEXT, SEAL_COLOUR_HEX } from '@/lib/dreamspell-data';
-import { getColourFamily } from '@/lib/categories';
+import { SEAL_COLOUR_TEXT, SEAL_COLOUR_HEX, TONES } from '@/lib/dreamspell-data';
+import { getColourFamily, getWavespellNumber, getWavespellSeal, getWavespellPosition, getCastle } from '@/lib/categories';
 import { getDeclaration } from '@/lib/galactic-content';
 import GlyphIcon from './GlyphIcon';
 import ToneSymbol from './ToneSymbol';
@@ -68,10 +68,16 @@ export default function TodayKin({ kinResult }: Props) {
             </div>
           )}
 
-          <div className="flex justify-center mt-6">
+          <div className="flex flex-wrap justify-center gap-2 mt-6">
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-parchment-dark/30">
               <span className="w-3 h-3 rounded-full" style={{ backgroundColor: SEAL_COLOUR_HEX[seal.colour] }} />
               <span className="text-ink-secondary text-sm">{seal.colour} Family — {family.role}</span>
+            </span>
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-parchment-dark/30">
+              <span className="text-ink-secondary text-sm">{getWavespellSeal(kin).name} Wavespell &middot; Day {getWavespellPosition(kin)}</span>
+            </span>
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-parchment-dark/30">
+              <span className="text-ink-secondary text-sm">{getCastle(kin).colour} Castle</span>
             </span>
           </div>
         </div>

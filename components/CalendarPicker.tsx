@@ -1,5 +1,6 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS = ['Su','Mo','Tu','We','Th','Fr','Sa'];
@@ -13,21 +14,40 @@ interface Props {
 
 export default function CalendarPicker({ day, month, year, onChange }: Props) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const popRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
   const now = new Date();
   const [viewMonth, setViewMonth] = useState(month ? parseInt(month) - 1 : now.getMonth());
   const [viewYear, setViewYear] = useState(year ? parseInt(year) : now.getFullYear());
 
+  // Click outside to close (check both button and popup)
   useEffect(() => {
+    if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (btnRef.current?.contains(t) || popRef.current?.contains(t)) return;
+      setOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Position the popup below the button
+  const updatePos = useCallback(() => {
+    if (!btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    const popW = 280;
+    let left = r.left + r.width / 2 - popW / 2 + window.scrollX;
+    // Clamp to viewport
+    if (left < 8) left = 8;
+    if (left + popW > window.innerWidth - 8) left = window.innerWidth - popW - 8;
+    setPos({ top: r.bottom + window.scrollY + 4, left });
   }, []);
 
   useEffect(() => {
     if (open) {
+      updatePos();
       if (month && year) {
         setViewMonth(parseInt(month) - 1);
         setViewYear(parseInt(year));
@@ -38,6 +58,17 @@ export default function CalendarPicker({ day, month, year, onChange }: Props) {
       }
     }
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Reposition on scroll/resize while open
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener('scroll', updatePos, true);
+    window.addEventListener('resize', updatePos);
+    return () => {
+      window.removeEventListener('scroll', updatePos, true);
+      window.removeEventListener('resize', updatePos);
+    };
+  }, [open, updatePos]);
 
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
@@ -66,8 +97,9 @@ export default function CalendarPicker({ day, month, year, onChange }: Props) {
   const isCur = !!(month && year) && parseInt(month) - 1 === viewMonth && parseInt(year) === viewYear;
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
+        ref={btnRef}
         type="button"
         onClick={() => setOpen(!open)}
         className={`bg-parchment-card border border-border px-3 py-2 rounded-lg text-xs focus:outline-none focus:border-gold transition-all cursor-pointer inline-flex items-center gap-2 hover:border-gold/50 whitespace-nowrap ${hasValue ? 'text-ink' : 'text-ink-muted'}`}
@@ -78,8 +110,12 @@ export default function CalendarPicker({ day, month, year, onChange }: Props) {
         {display}
       </button>
 
-      {open && (
-        <div className="absolute z-50 top-full mt-2 left-1/2 -translate-x-1/2 bg-parchment-card border border-border rounded-2xl shadow-golden-lg p-4 w-[280px] animate-fade-in">
+      {open && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={popRef}
+          className="fixed bg-parchment-card border border-border rounded-2xl shadow-golden-lg p-4 w-[280px] animate-fade-in"
+          style={{ zIndex: 9999, top: pos.top, left: pos.left, position: 'absolute' }}
+        >
           {/* Month & Year navigation */}
           <div className="flex items-center justify-between mb-3">
             <button type="button" onClick={prev} className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-parchment-dark transition-colors text-ink-muted text-sm">&#8249;</button>
@@ -149,8 +185,9 @@ export default function CalendarPicker({ day, month, year, onChange }: Props) {
               Today
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </>
   );
 }

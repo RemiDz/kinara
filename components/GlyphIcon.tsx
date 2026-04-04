@@ -15,7 +15,8 @@ export default function GlyphIcon({ iconFile, sealName, size = 80, className = '
       alt={`${sealName} glyph`}
       width={size}
       height={size}
-      className={`inline-block ${className}`}
+      className={`inline-block flex-shrink-0 ${className}`}
+      style={{ objectFit: 'contain', width: size, height: size }}
     />
   );
 }

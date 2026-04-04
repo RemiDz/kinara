@@ -39,6 +39,11 @@ const config: Config = {
         golden: '0 0 20px rgba(196, 150, 44, 0.3)',
         'golden-lg': '0 0 30px rgba(196, 150, 44, 0.25)',
       },
+      keyframes: {
+        slideIn: { from: { transform: 'translateX(-100%)' }, to: { transform: 'translateX(0)' } },
+        slideUp: { from: { transform: 'translateY(100%)' }, to: { transform: 'translateY(0)' } },
+        fadeIn: { from: { opacity: '0' }, to: { opacity: '1' } },
+      },
     },
   },
   plugins: [],

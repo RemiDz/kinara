@@ -18,6 +18,8 @@ import TzolkinMatrix from '@/components/TzolkinMatrix';
 import KinComparison from '@/components/KinComparison';
 import FrequencyProfile from '@/components/FrequencyProfile';
 import CalendarPicker from '@/components/CalendarPicker';
+import WavespellTracker from '@/components/WavespellTracker';
+import HarmonicOctave from '@/components/HarmonicOctave';
 import Footer from '@/components/Footer';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -38,7 +40,7 @@ export default function Home() {
   const [year, setYear] = useState('');
 
   // Comparison highlights for the matrix
-  const [comparisonKins, setComparisonKins] = useState<{ kin: number; color: string }[]>([]);
+  const [comparisonKins, setComparisonKins] = useState<{ kin: number; color: string; name: string }[]>([]);
 
   // Auto-load today's Kin
   useEffect(() => {
@@ -72,8 +74,8 @@ export default function Home() {
 
   // Collect all Kins to highlight on the matrix
   const allHighlighted = [
-    ...(todayKin ? [{ kin: todayKin.kin, color: '#95a5a6' }] : []),
-    ...(clientKin ? [{ kin: clientKin.kin, color: '#C4962C' }] : []),
+    ...(todayKin ? [{ kin: todayKin.kin, color: '#95a5a6', name: 'Today' }] : []),
+    ...(clientKin ? [{ kin: clientKin.kin, color: '#C4962C', name: clientName || 'Client' }] : []),
     ...comparisonKins,
   ];
 
@@ -83,6 +85,9 @@ export default function Home() {
 
       {/* Zone B — Today's Kin (auto-loaded hero) */}
       <TodayKin kinResult={todayKin} />
+
+      {/* Wavespell Journey — daily engagement */}
+      <WavespellTracker />
 
       {/* Zone C — Client Lookup (collapsible) */}
       <section className="px-6 py-4">
@@ -97,7 +102,7 @@ export default function Home() {
             </svg>
           </button>
 
-          <div className={`transition-all duration-300 ${lookupOpen ? 'max-h-[200px] opacity-100 overflow-visible' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+          <div className={`overflow-hidden transition-all duration-300 ${lookupOpen ? 'max-h-[400px] opacity-100' : 'max-h-0 opacity-0'}`}>
             <div className="pb-4">
               <input
                 type="text"
@@ -145,6 +150,7 @@ export default function Home() {
             <WavespellPosition kinResult={clientKin} />
             <CastleSection kinResult={clientKin} />
             <FrequencyProfile kinResult={clientKin} />
+            <HarmonicOctave kinResult={clientKin} />
             <SoundHealing kinResult={clientKin} />
           </>
         )}

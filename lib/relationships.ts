@@ -133,9 +133,9 @@ export function findConnections(kinA: number, kinB: number, idxA: number, idxB: 
   if (castleA.number === castleB.number) {
     connections.push({
       type: 'castle', indexA: idxA, indexB: idxB,
-      label: `Same Castle (${castleA.colour})`,
-      detail: castleA.court,
-      description: `Both reside in the ${castleA.name} — ${castleA.court}. They share the same overarching cycle of transformation.`,
+      label: `Same Castle (Kin ${castleA.kinRange[0]}\u2013${castleA.kinRange[1]})`,
+      detail: `${castleA.name} \u2014 ${castleA.court}`,
+      description: `Both Kins fall within the ${castleA.name} (Kin ${castleA.kinRange[0]}\u2013${castleA.kinRange[1]}). Castle is determined by Kin position in the 260-day cycle, not by seal colour.`,
       ...FAMILY_STYLES.castle, arrow: false,
     });
   }
